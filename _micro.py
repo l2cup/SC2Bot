@@ -59,16 +59,22 @@ class Micro(sc2.BotAI):
                     lambda x: x.can_attack_air).closer_than(4.5, vr)
                 enemyUnits = self.known_enemy_units.closer_than(
                     7, vr)
-                if vr.weapon_cooldown == 0 and enemyUnits.exists:
+                enemyCanAttackMeUnits = self.known_enemy_units.filter(
+                    lambda x: x.can_attack_air).closer_than(7, vr)
+                if vr.weapon_cooldown == 0 and enemyCanAttackMeUnits.exists:
+                    print("MICRO 0")
+                    enemyUnit = enemyCanAttackMeUnits.sorted(lambda x: x.distance_to(vr))[0]
+                    await self.do(vr.attack(enemyUnit))
+                    await self.ability_cast(vr, enemyUnit)
+                    continue
+                elif vr.weapon_cooldown == 0 and enemyUnits.exists:
                     print("MICRO 1")
                     enemyUnits = enemyUnits.sorted(
                         lambda x: x.distance_to(vr))
                     enemy = enemyUnits[0]
                     await self.do(vr.attack(enemy))
-                    if enemy.is_armored:
-                        await self.do(
-                            vr(AbilityId.EFFECT_VOIDRAYPRISMATICALIGNMENT))
-                        print("ABILITY")
+                    await self.ability_cast(vr, enemy)
+                    continue
                 elif enemyThreatsVeryClose.exists:
                     print("MICRO 2")
                     retreatPoints = self.neighbors8(
@@ -79,6 +85,7 @@ class Micro(sc2.BotAI):
                         retreatPoint = max(retreatPoints, key=lambda x: x.distance_to(
                             closestEnemy) - x.distance_to(vr))
                         await self.do(vr.move(retreatPoint))
+                        continue
                 elif enemyThreatsClose.exists and vr.health_percentage < 2/5:
                     print("MICRO 3")
                     retreatPoints = self.neighbors8(
@@ -89,15 +96,25 @@ class Micro(sc2.BotAI):
                         retreatPoint = closestEnemy.position.furthest(
                             retreatPoints)
                         await self.do(vr.move(retreatPoint))
+                        continue
                 else:
-                    if self.known_enemy_units.exists:
+                    if self.known_enemy_units.filter(lambda x: x.can_attack_air).exists:
+                        print("MICRO 4 AIR")
+                        closestEnemy = self.known_enemy_units.filter(
+                            lambda x: x.can_attack_air).closest_to(vr)
+                        await self.do(vr.attack(closestEnemy))
+                        continue
+
+                    elif self.known_enemy_units.exists:
                         print("MICRO 4")
                         closestEnemy = self.known_enemy_units.closest_to(
                             vr)
                         await self.do(vr.attack(closestEnemy))
+                        continue
                     else:
                         print("MICRO 5")
                         await self.do(vr.attack(self.random_location_variance(random.choice(self.enemy_start_locations))))
+                        continue
 
     # def find_target(self, state):
     #     if len(self.known_enemy_units) > 0:
@@ -106,6 +123,10 @@ class Micro(sc2.BotAI):
     #         return random.choice(self.known_enemy_structures)
     #     else:
     #         return self.enemy_start_locations[0]
+
+    async def ability_cast(self, vr, target):
+        if target.is_armored:
+            await self.do(vr(AbilityId.EFFECT_VOIDRAYPRISMATICALIGNMENT))
 
     async def scout(self):
 

@@ -4,14 +4,15 @@ from _micro import Micro
 from _neural import Neural
 import keras
 
-class SCIIBot(Macro, Units, Micro,Neural):
+
+class SCIIBot(Macro, Units, Micro, Neural):
 
     def __init__(self):
         self.scouts_and_spots = {}
         self.ITERATIONS_PER_MINUTE = 165
         self.do_something_after = 0
         self.model = keras.models.load_model("BasicCNN-30-epochs-0.0001-LR-4.2")
-    
+
     async def on_step(self, iteration):
         self.iteration = iteration
         await Macro.manage_macro(self, iteration)
